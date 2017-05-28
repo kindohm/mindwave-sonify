@@ -35,10 +35,10 @@ server.listen(8080, function listening() {
 
 
 
-
+// USE THE OUTGOING PORT NUMBER AFTER REBOOT.
 Cylon.robot({
     connections: {
-        neurosky: { adaptor: 'neurosky', port: 'COM6' }
+        neurosky: { adaptor: 'neurosky', port: 'COM8' }
     },
 
     devices: {
