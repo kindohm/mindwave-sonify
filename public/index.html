@@ -1,6 +1,7 @@
 <html>
 
 <head>
+  <title>Un:heard Resonance - Brainwave Sonifier</title>
   <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css">
   <style>
     body {
@@ -11,159 +12,49 @@
 </head>
 
 <body>
-  <div class="container">
-    <h1>NeuroSky Mindwave Sensor Sonification</h1>
-    <hr>
-    <p>
-      <button class="btn btn-default" id="toggle">Start/Stop</button>
-      <button class="btn btn-default" id="modulate">Random Modulate</button>
-    </p>
+    <div class="container">
+      <h1>Un:heard Resonance - Brainwave Sonifier</h1>
+      <hr>
+      <p>
+        <button class="btn btn-default" id="toggle">Start/Stop</button>
+        <button class="btn btn-default" id="simulate">Simulate Brainwaves</button>
+        <button class="btn btn-default" id="changePatch">Change Patch</button>
+      </p>
 
-    <canvas id="c" width="200" height="50"></canvas>
-    <canvas id="d" width="200" height="50"></canvas>
-    <canvas id="e" width="200" height="50"></canvas>
-    <canvas id="f" width="200" height="50"></canvas>
-    <canvas id="g" width="200" height="50"></canvas>
-    <canvas id="h" width="200" height="50"></canvas>
-    <canvas id="i" width="200" height="50"></canvas>
-    <canvas id="j" width="200" height="50"></canvas>
+      <canvas id="delta" width="200" height="25"></canvas>
+      <canvas id="theta" width="200" height="25"></canvas>
+      <canvas id="loAlpha" width="200" height="25"></canvas>
+      <canvas id="hiAlpha" width="200" height="25"></canvas>
+      <canvas id="loBeta" width="200" height="25"></canvas>
+      <canvas id="hiBeta" width="200" height="25"></canvas>
+      <canvas id="loGamma" width="200" height="25"></canvas>
+      <canvas id="midGamma" width="200" height="25"></canvas>
 
   </div>
+  <script src="patch.js"></script>
+  <script src="patch2.js"></script>
+  <script src="voice.js"></script>
+  <script src="graphs.js"></script>
   <script>
-    class Voice {
-      constructor(audioContext, patch) {
-        this.audioContext = audioContext;
-        this.started = false;
-        this.nodes = patch.nodes;
-      }
-
-      start() {
-        if (this.started) {
-          console.warn('tried to start a patch that has already been started.');
-        }
-
-        for (var i = 0; i < this.nodes.length; i++) {
-          this.nodes[i].start(this.audioContext.currentTime);
-        }
-        this.started = true;
-      }
-
-      stop() {
-        if (!this.started) return;
-        for (var i = 0; i < this.nodes.length; i++) {
-          this.nodes[i].stop(this.audioContext.currentTime);
-        }
-      }
-    }
-
-    class Patch {
-      constructor(audioContext) {
-        this.audioContext = audioContext;
-
-        let osc1 = audioContext.createOscillator();
-        osc1.connect(audioContext.destination);
-        osc1.type = 'triangle';
-        osc1.frequency.value = 400;
-
-        let vibrato1 = audioContext.createGain()
-        vibrato1.gain.value = 100;
-        vibrato1.connect(osc1.detune);
-
-        let lfo1 = audioContext.createOscillator()
-        lfo1.connect(vibrato1)
-        lfo1.frequency.value = 0.1;
-
-        let vibrato2 = audioContext.createGain()
-        vibrato2.gain.value = 100;
-        vibrato2.connect(lfo1.detune);
-
-        let lfo2 = audioContext.createOscillator()
-        lfo2.connect(vibrato2);
-        lfo2.frequency.value = 50;
-
-        this.nodes = [osc1, lfo1, lfo2];
-        this.osc1 = osc1;
-        this.lfo1 = lfo1;
-        this.lfo2 = lfo2;
-        this.vibrato1 = vibrato1;
-
-        this.modulate = this.modulate.bind(this);
-      }
-
-      modulate(params) {
-        this.osc1.frequency.linearRampToValueAtTime(60 + 400 * params.g, this.audioContext.currentTime + 0.5);
-        this.vibrato1.gain.linearRampToValueAtTime(params.d * 1000, this.audioContext.currentTime + 0.5)
-        this.lfo1.frequency.linearRampToValueAtTime(100 * params.e, this.audioContext.currentTime + 0.5);
-        this.lfo2.frequency.linearRampToValueAtTime(20 * params.f, this.audioContext.currentTime + 0.5);
-      }
-    }
-
     document.addEventListener("DOMContentLoaded", function (event) {
 
-      let ws = new WebSocket('ws:/localhost:8080');
-      let audioContext = new AudioContext();
-      let toggle = document.getElementById('toggle');
-      let modulate = document.getElementById('modulate');
-      let voice, patch;
-      let playing = false;
-      var canvasC = document.getElementById('c');
-      var canvasD = document.getElementById('d');
-      var canvasE = document.getElementById('e');
-      var canvasF = document.getElementById('f');
-      var canvasG = document.getElementById('g');
-      var canvasH = document.getElementById('h');
-      var canvasI = document.getElementById('i');
-      var canvasJ = document.getElementById('j');
-      var c = canvasC.getContext('2d');
-      var d = canvasD.getContext('2d');
-      var e = canvasE.getContext('2d');
-      var f = canvasF.getContext('2d');
-      var g = canvasG.getContext('2d');
-      var h = canvasH.getContext('2d');
-      var i = canvasI.getContext('2d');
-      var j = canvasJ.getContext('2d');
-      var width = 200;
-      var height = 50;
-
-      c.beginPath();
-      d.beginPath();
-      e.beginPath();
-      f.beginPath();
-      g.beginPath();
-      h.beginPath();
-      i.beginPath();
-      j.beginPath();
-
-      let x = 0;
-      let inc = 10;
-      let strokes = {
-        c: '#ff3333', d: '#33ff33', e: '#3333ff', f: '#33ffff',
-        g: '#ff33ff', h: '#ffff33', i: '#cccccc', j: '#ffcc33'
-      };
-      let contexts = { c: c, d: d, e: e, f: f, g: g, h: h, i: i, j: j };
-
-      function drawValue(data) {
-        var ctx = contexts[data.type];
-        var value = data.value;
-        var y = height - height * value;
-        ctx.lineTo(x+10, y);
-        ctx.strokeStyle = strokes[data.type];
-        ctx.stroke();
-
-        if (x >= width) {
-          ctx.moveTo(0, height);
-          ctx.beginPath();
-          ctx.clearRect(0, 0, width, height);
-        }
-      }
+      let ws = new WebSocket('ws:/localhost:8080')
+        , audioContext = new AudioContext()
+        , toggle = document.getElementById('toggle')
+        , simulateButton = document.getElementById('simulate')
+        , changePatchButton = document.getElementById('changePatch')
+        , playing = false
+        , canvasNames = ['delta', 'theta', 'loAlpha', 'hiAlpha', 'hiBeta', 'loBeta', 'loGamma', 'midGamma']
+        , canvasColors = ['#ff3333', '#33ff33', '#3333ff', '#33ffff', '#ff33ff', '#ffff33', '#cccccc', '#ffcc33']
+        , graphs = new Graphs(document, canvasNames, canvasColors)
+        , voice;
 
       toggle.addEventListener('click', function () {
         console.log('toggle play/stop');
 
         if (!playing) {
           console.log('not playing. creating a voice');
-          patch = new Patch(audioContext);
-          voice = new Voice(audioContext, patch);
+          voice = new Voice(audioContext);
           voice.start();
         } else {
           if (voice) voice.stop();
@@ -172,9 +63,34 @@
         playing = !playing;
       });
 
-      modulate.addEventListener('click', function () {
-        if (!patch) return;
-        patch.modulate({ x: Math.random(), y: Math.random() });
+      changePatchButton.addEventListener('click', () => {
+        if (voice) voice.changePatch();
+      });
+
+      function sendModulation(modulation) {
+        if (graphs) graphs.drawValues(modulation);
+        if (voice) voice.modulate(modulation);
+      }
+
+      simulateButton.addEventListener('click', function () {
+
+        setInterval(() => {
+
+          var modulation = {
+            delta: Math.random(),
+            theta: Math.random(),
+            loAlpha: Math.random(),
+            hiAlpha: Math.random(),
+            loBeta: Math.random(),
+            hiBeta: Math.random(),
+            loGamma: Math.random(),
+            midGamma: Math.random()
+          };
+
+          sendModulation(modulation);
+
+        }, 1000);
+
       });
 
       ws.onmessage = function (event) {
@@ -184,40 +100,23 @@
           if (!message) return;
 
           var modulation = {
-            c: message.type == 'eeg' ? message.data.delta : 0,
-            d: message.type == 'eeg' ? message.data.theta : 0,
-            e: message.type == 'eeg' ? message.data.loAlpha : 0,
-            f: message.type == 'eeg' ? message.data.hiAlpha : 0,
-            g: message.type == 'eeg' ? message.data.loBeta : 0,
-            h: message.type == 'eeg' ? message.data.hiBeta : 0,
-            i: message.type == 'eeg' ? message.data.loGamma : 0,
-            j: message.type == 'eeg' ? message.data.midGamma : 0
+            delta: message.data.delta,
+            theta: message.data.theta,
+            loAlpha: message.data.loAlpha,
+            hiAlpha: message.data.hiAlpha,
+            loBeta: message.data.loBeta,
+            hiBeta: message.data.hiBeta,
+            loGamma: message.data.loGamma,
+            midGamma: message.data.midGamma
           };
 
-          x += inc;
-          drawValue({ type: 'd', value: modulation.d });
-          drawValue({ type: 'c', value: modulation.c });
-          drawValue({ type: 'e', value: modulation.e });
-          drawValue({ type: 'f', value: modulation.f });
-          drawValue({ type: 'g', value: modulation.g });
-          drawValue({ type: 'h', value: modulation.h });
-          drawValue({ type: 'i', value: modulation.i });
-          drawValue({ type: 'j', value: modulation.j });
-
-          if (x > width) x = 0;
-
-          if (!patch) return;
-
-
-          patch.modulate(modulation);
+          sendModulation(modulation);
         }
         catch (err) {
           console.error('error on websocket message', err);
         }
 
       };
-
-
     });
   </script>
 
