@@ -18,6 +18,16 @@
       <button class="btn btn-default" id="toggle">Start/Stop</button>
       <button class="btn btn-default" id="modulate">Random Modulate</button>
     </p>
+
+    <canvas id="c" width="200" height="50"></canvas>
+    <canvas id="d" width="200" height="50"></canvas>
+    <canvas id="e" width="200" height="50"></canvas>
+    <canvas id="f" width="200" height="50"></canvas>
+    <canvas id="g" width="200" height="50"></canvas>
+    <canvas id="h" width="200" height="50"></canvas>
+    <canvas id="i" width="200" height="50"></canvas>
+    <canvas id="j" width="200" height="50"></canvas>
+
   </div>
   <script>
     class Voice {
@@ -52,7 +62,7 @@
 
         let osc1 = audioContext.createOscillator();
         osc1.connect(audioContext.destination);
-        osc1.type = 'sawtooth';
+        osc1.type = 'triangle';
         osc1.frequency.value = 400;
 
         let vibrato1 = audioContext.createGain()
@@ -81,11 +91,10 @@
       }
 
       modulate(params) {
-        console.log('modulating', params);
-        this.osc1.frequency.linearRampToValueAtTime(60 + 400 * params.x, this.audioContext.currentTime + 0.5);
-        this.lfo1.frequency.linearRampToValueAtTime(200 * params.y, this.audioContext.currentTime + 0.5);
-        this.lfo2.frequency.linearRampToValueAtTime(20 * params.y * params.x, this.audioContext.currentTime + 0.5);
-        this.vibrato1.gain.linearRampToValueAtTime(params.x * 1000, this.audioContext.currentTime + 0.5)
+        this.osc1.frequency.linearRampToValueAtTime(60 + 400 * params.g, this.audioContext.currentTime + 0.5);
+        this.vibrato1.gain.linearRampToValueAtTime(params.d * 1000, this.audioContext.currentTime + 0.5)
+        this.lfo1.frequency.linearRampToValueAtTime(100 * params.e, this.audioContext.currentTime + 0.5);
+        this.lfo2.frequency.linearRampToValueAtTime(20 * params.f, this.audioContext.currentTime + 0.5);
       }
     }
 
@@ -97,6 +106,56 @@
       let modulate = document.getElementById('modulate');
       let voice, patch;
       let playing = false;
+      var canvasC = document.getElementById('c');
+      var canvasD = document.getElementById('d');
+      var canvasE = document.getElementById('e');
+      var canvasF = document.getElementById('f');
+      var canvasG = document.getElementById('g');
+      var canvasH = document.getElementById('h');
+      var canvasI = document.getElementById('i');
+      var canvasJ = document.getElementById('j');
+      var c = canvasC.getContext('2d');
+      var d = canvasD.getContext('2d');
+      var e = canvasE.getContext('2d');
+      var f = canvasF.getContext('2d');
+      var g = canvasG.getContext('2d');
+      var h = canvasH.getContext('2d');
+      var i = canvasI.getContext('2d');
+      var j = canvasJ.getContext('2d');
+      var width = 200;
+      var height = 50;
+
+      c.beginPath();
+      d.beginPath();
+      e.beginPath();
+      f.beginPath();
+      g.beginPath();
+      h.beginPath();
+      i.beginPath();
+      j.beginPath();
+
+      let x = 0;
+      let inc = 10;
+      let strokes = {
+        c: '#ff3333', d: '#33ff33', e: '#3333ff', f: '#33ffff',
+        g: '#ff33ff', h: '#ffff33', i: '#cccccc', j: '#ffcc33'
+      };
+      let contexts = { c: c, d: d, e: e, f: f, g: g, h: h, i: i, j: j };
+
+      function drawValue(data) {
+        var ctx = contexts[data.type];
+        var value = data.value;
+        var y = height - height * value;
+        ctx.lineTo(x+10, y);
+        ctx.strokeStyle = strokes[data.type];
+        ctx.stroke();
+
+        if (x >= width) {
+          ctx.moveTo(0, height);
+          ctx.beginPath();
+          ctx.clearRect(0, 0, width, height);
+        }
+      }
 
       toggle.addEventListener('click', function () {
         console.log('toggle play/stop');
@@ -122,8 +181,35 @@
         try {
           console.log('websocket message', event.data);
           let message = JSON.parse(event.data);
+          if (!message) return;
+
+          var modulation = {
+            c: message.type == 'eeg' ? message.data.delta : 0,
+            d: message.type == 'eeg' ? message.data.theta : 0,
+            e: message.type == 'eeg' ? message.data.loAlpha : 0,
+            f: message.type == 'eeg' ? message.data.hiAlpha : 0,
+            g: message.type == 'eeg' ? message.data.loBeta : 0,
+            h: message.type == 'eeg' ? message.data.hiBeta : 0,
+            i: message.type == 'eeg' ? message.data.loGamma : 0,
+            j: message.type == 'eeg' ? message.data.midGamma : 0
+          };
+
+          x += inc;
+          drawValue({ type: 'd', value: modulation.d });
+          drawValue({ type: 'c', value: modulation.c });
+          drawValue({ type: 'e', value: modulation.e });
+          drawValue({ type: 'f', value: modulation.f });
+          drawValue({ type: 'g', value: modulation.g });
+          drawValue({ type: 'h', value: modulation.h });
+          drawValue({ type: 'i', value: modulation.i });
+          drawValue({ type: 'j', value: modulation.j });
+
+          if (x > width) x = 0;
+
           if (!patch) return;
-          patch.modulate({ x: Math.random(), y: Math.random() });
+
+
+          patch.modulate(modulation);
         }
         catch (err) {
           console.error('error on websocket message', err);

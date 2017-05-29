@@ -9,10 +9,6 @@ const app = express();
 app.use('/static', express.static('public'))
 app.use('/node_modules', express.static('node_modules'))
 
-// app.use(function (req, res) {
-//   res.send({ msg: "hello" });
-// });
-
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
@@ -21,17 +17,11 @@ var mahWS;
 wss.on('connection', function connection(ws, req) {
     mahWS = ws;
     const location = url.parse(req.url, true);
-
-    ws.on('message', function incoming(message) {
-        console.log('received: %s', message);
-    });
 });
 
 server.listen(8080, function listening() {
     console.log('Listening on %d', server.address().port);
 });
-
-
 
 // USE THE OUTGOING PORT NUMBER AFTER REBOOT.
 Cylon.robot({
@@ -45,24 +35,29 @@ Cylon.robot({
 
     work: function (my) {
 
-        console.log('work.');
+        console.log('working.');
+      
+        my.headset.on('eeg', function (data) {
+            var factor = 20000000;
+            var msg = {
+                    delta: data.delta / factor,
+                    theta: data.theta / factor,
+                    loAlpha: data.loAlpha / factor,
+                    hiAlpha: data.hiAlpha / factor,
+                    loBeta: data.loBeta / factor,
+                    hiBeta: data.hiBeta / factor,
+                    loGamma: data.loGamma / factor,
+                    midGamma: data.midGamma / factor
+                };
 
-        my.headset.on('attention', function (data) {
-            console.log("attention:", data);
+            console.log('eeg', msg);
             if (!mahWS) {
-                console.warn('no websocket');
                 return;
-            };
-            mahWS.send(JSON.stringify({type: 'attention', data: data}));
-        });
+            }
 
-        my.headset.on('meditation', function (data) {
-            console.log("meditation:", data);
-            if (!mahWS) {
-                console.warn('no websocket');
-                return;
-            };
-            mahWS.send(JSON.stringify({type: 'meditation', data: data}));
-        });
+            mahWS.send(JSON.stringify({
+                type: 'eeg', data: msg
+            }))
+        })
     }
 }).start();
