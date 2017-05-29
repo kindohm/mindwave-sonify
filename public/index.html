@@ -1,68 +1,133 @@
 <html>
 
-<body>
-  <h1>hi</h1>
+<head>
+  <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      background: #222;
+      color: #fff;
+    }
+  </style>
+</head>
 
+<body>
+  <div class="container">
+    <h1>NeuroSky Mindwave Sensor Sonification</h1>
+    <hr>
+    <p>
+      <button class="btn btn-default" id="toggle">Start/Stop</button>
+      <button class="btn btn-default" id="modulate">Random Modulate</button>
+    </p>
+  </div>
   <script>
+    class Voice {
+      constructor(audioContext, patch) {
+        this.audioContext = audioContext;
+        this.started = false;
+        this.nodes = patch.nodes;
+      }
+
+      start() {
+        if (this.started) {
+          console.warn('tried to start a patch that has already been started.');
+        }
+
+        for (var i = 0; i < this.nodes.length; i++) {
+          this.nodes[i].start(this.audioContext.currentTime);
+        }
+        this.started = true;
+      }
+
+      stop() {
+        if (!this.started) return;
+        for (var i = 0; i < this.nodes.length; i++) {
+          this.nodes[i].stop(this.audioContext.currentTime);
+        }
+      }
+    }
+
+    class Patch {
+      constructor(audioContext) {
+        this.audioContext = audioContext;
+
+        let osc1 = audioContext.createOscillator();
+        osc1.connect(audioContext.destination);
+        osc1.type = 'sawtooth';
+        osc1.frequency.value = 400;
+
+        let vibrato1 = audioContext.createGain()
+        vibrato1.gain.value = 100;
+        vibrato1.connect(osc1.detune);
+
+        let lfo1 = audioContext.createOscillator()
+        lfo1.connect(vibrato1)
+        lfo1.frequency.value = 0.1;
+
+        let vibrato2 = audioContext.createGain()
+        vibrato2.gain.value = 100;
+        vibrato2.connect(lfo1.detune);
+
+        let lfo2 = audioContext.createOscillator()
+        lfo2.connect(vibrato2);
+        lfo2.frequency.value = 50;
+
+        this.nodes = [osc1, lfo1, lfo2];
+        this.osc1 = osc1;
+        this.lfo1 = lfo1;
+        this.lfo2 = lfo2;
+        this.vibrato1 = vibrato1;
+
+        this.modulate = this.modulate.bind(this);
+      }
+
+      modulate(params) {
+        console.log('modulating', params);
+        this.osc1.frequency.linearRampToValueAtTime(60 + 400 * params.x, this.audioContext.currentTime + 0.5);
+        this.lfo1.frequency.linearRampToValueAtTime(200 * params.y, this.audioContext.currentTime + 0.5);
+        this.lfo2.frequency.linearRampToValueAtTime(20 * params.y * params.x, this.audioContext.currentTime + 0.5);
+        this.vibrato1.gain.linearRampToValueAtTime(params.x * 1000, this.audioContext.currentTime + 0.5)
+      }
+    }
+
     document.addEventListener("DOMContentLoaded", function (event) {
 
-      var ws = new WebSocket('ws:/localhost:8080');
+      let ws = new WebSocket('ws:/localhost:8080');
+      let audioContext = new AudioContext();
+      let toggle = document.getElementById('toggle');
+      let modulate = document.getElementById('modulate');
+      let voice, patch;
+      let playing = false;
 
-      var audioContext = new AudioContext()
+      toggle.addEventListener('click', function () {
+        console.log('toggle play/stop');
 
-      var oscillator = audioContext.createOscillator();
-      oscillator.connect(audioContext.destination);
-      oscillator.type = 'square';
-      oscillator.frequency.value = 400;
+        if (!playing) {
+          console.log('not playing. creating a voice');
+          patch = new Patch(audioContext);
+          voice = new Voice(audioContext, patch);
+          voice.start();
+        } else {
+          if (voice) voice.stop();
+        }
 
-      var oscillator2 = audioContext.createOscillator();
-      oscillator2.connect(audioContext.destination);
-      oscillator2.type = 'square';
-      oscillator2.frequency.value = 600;
+        playing = !playing;
+      });
 
-      var vibrato = audioContext.createGain()
-      vibrato.gain.value = 100;
-      vibrato.connect(oscillator.detune);
-
-      var vibrato2 = audioContext.createGain()
-      vibrato2.gain.value = 100;
-      vibrato2.connect(oscillator2.detune);
-
-      var lfo = audioContext.createOscillator()
-      lfo.connect(vibrato)
-      lfo.frequency.value = 2;
-
-      var lfo2 = audioContext.createOscillator()
-      lfo2.connect(vibrato2)
-      lfo2.frequency.value = 2;
-
-
-      oscillator.start(audioContext.currentTime);
-      lfo.start(audioContext.currentTime);
-      oscillator2.start(audioContext.currentTime);
-      lfo2.start(audioContext.currentTime);
-
-      oscillator.stop(audioContext.currentTime + 1000);
-      lfo.stop(audioContext.currentTime + 1000);
-      oscillator2.stop(audioContext.currentTime + 1000);
-      lfo2.stop(audioContext.currentTime + 1000);
+      modulate.addEventListener('click', function () {
+        if (!patch) return;
+        patch.modulate({ x: Math.random(), y: Math.random() });
+      });
 
       ws.onmessage = function (event) {
-        var message = JSON.parse(event.data);
-        console.log(message);
-
-        if (message.type === 'meditation'){
-          lfo.frequency.linearRampToValueAtTime(500/(message.data*2), audioContext.currentTime + 0.5);
-          vibrato2.gain.linearRampToValueAtTime(message.data*60, audioContext.currentTime + 0.5);
+        try {
+          console.log('websocket message', event.data);
+          let message = JSON.parse(event.data);
+          if (!patch) return;
+          patch.modulate({ x: Math.random(), y: Math.random() });
         }
-
-        if (message.type === 'attention'){
-          lfo2.frequency.linearRampToValueAtTime(500/(message.data*2), audioContext.currentTime + 0.5);
-          vibrato.gain.linearRampToValueAtTime(message.data*60, audioContext.currentTime + 0.5);
+        catch (err) {
+          console.error('error on websocket message', err);
         }
-
-        oscillator.frequency.linearRampToValueAtTime((500/(message.data*2)) * (message.data*60) * 0.1, audioContext.currentTime + 0.5);
-        oscillator2.frequency.linearRampToValueAtTime((700/(message.data*2.1)) * (message.data*70) * 0.11, audioContext.currentTime + 0.5);
 
       };
 
