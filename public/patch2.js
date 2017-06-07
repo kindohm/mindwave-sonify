@@ -3,14 +3,14 @@ class Patch2 {
         this.playing = false;
         this.modTime = 1;
         this.audioContext = audioContext;
-        this.types = ['delta', 'theta', 'hiAlpha', 'loAlpha', 'hiBeta', 'loBeta', 'loGamma', 'midGamma'];
         this.nodes = [];
         this.oscHash = {};
 
         this.types = ['triangle', 'sine', 'sawtooth', 'square'];
         this.type = 0;
+        this.fmType = 0;
 
-        this.durationScales = [250, 500, 300, 1000];
+        this.durationScales = [250, 500, 300, 700, 200, 1500, 2000, 1000];
         this.durationScale = 0;
 
         this.masterGain = this.audioContext.createGain();
@@ -38,7 +38,6 @@ class Patch2 {
     createNodes(quantityFactor, timeFactor, freqFactor, fmFreqFactor) {
 
         var quantity = Math.floor(quantityFactor * 25);
-        console.log('creating ' + quantity + ' notes');
         for (var i = 0; i < quantity; i++) {
             let osc = this.audioContext.createOscillator();
 
@@ -56,6 +55,7 @@ class Patch2 {
             vibrato1.connect(osc.detune);
 
             let lfo1 = this.audioContext.createOscillator();
+            lfo1.type = this.types[this.fmType];
             lfo1.connect(vibrato1);
             lfo1.frequency.value = this.getFmFreq(fmFreqFactor);;
 
@@ -75,28 +75,33 @@ class Patch2 {
     }
 
     change() {
-        if (this.type + 1 > this.types.length) {
-            this.type = 0;
-        }
-        else {
-            this.type += 1;
-        }
 
-        if (this.durationScale + 1 > this.durationScales.length) {
-            this.durationScale = 0;
-        } else {
-            this.durationScale += 1;
-        }
+        this.type = this.getRandomInt(0, this.types.length - 1);
+        this.fmType = this.getRandomInt(0, this.types.length - 1);
+        this.durationScale = this.getRandomInt(0, this.durationScales.length - 1);
+
+        // if (this.type + 1 >= this.types.length) {
+        //     this.type = 0;
+        // }
+        // else {
+        //     this.type += 1;
+        // }
+
+        // if (this.durationScale + 1 >= this.durationScales.length) {
+        //     this.durationScale = 0;
+        // } else {
+        //     this.durationScale += 1;
+        // }
 
 
     }
 
     getFreq(freqFactor) {
-        return this.getRandomInt(60 * freqFactor, 10000 * freqFactor);
+        return this.getRandomInt(40 * freqFactor, 10000 * freqFactor);
     }
 
     getFmFreq(fmFreqFactor) {
-        return this.getRandomInt(50 * fmFreqFactor, 10000 * fmFreqFactor);
+        return this.getRandomInt(10 * fmFreqFactor, 10000 * fmFreqFactor);
     }
 
     getStartTime(timeFactor) {

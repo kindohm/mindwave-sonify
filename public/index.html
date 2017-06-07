@@ -5,40 +5,24 @@
   <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.min.css">
   <style>
     body {
-      background: #222;
-      color: #fff;
-    }
-
-    canvas{
-      position: absolute;
+      background-color: rgb(22, 22, 22);
+      color: rgb(100, 100, 100);
+      font-family: Consolas, monospace;
     }
   </style>
 </head>
 
 <body id="body">
-  <div class="container">
-    <p>
-      <!--<button class="btn btn-default" id="toggle">Start/Stop</button>-->
-      <!--<button class="btn btn-default" id="simulate">Simulate Brainwaves</button>
+  <div class="container text-center" id="container">
+    <!--<button class="btn btn-default" id="toggle">Start/Stop</button>-->
+    <!--<button class="btn btn-default" id="simulate">Simulate Brainwaves</button>
       <button class="btn btn-default" id="changePatch">Change Patch</button>-->
-    </p>
 
-    <canvas id="fftCanvas" width="1000" height="800"></canvas>
-    <canvas id="delta" width="1000" height="800"></canvas>
-    <canvas id="theta" width="1000" height="800"></canvas>
-    <canvas id="loAlpha" width="1000" height="800"></canvas>
-    <canvas id="hiAlpha" width="1000" height="800"></canvas>
-    <canvas id="loBeta" width="1000" height="800"></canvas>
-    <canvas id="hiBeta" width="1000" height="800"></canvas>
-    <canvas id="loGamma" width="1000" height="800"></canvas>
-    <canvas id="midGamma" width="1000" height="800"></canvas>
-
-
+    <canvas id="fftCanvas" width="1170" height="600"></canvas>
+    <p id="info" class="text-center"></p>
   </div>
-  <!--<script src="patch.js"></script>-->
   <script src="patch2.js"></script>
   <script src="voice.js"></script>
-  <script src="graphs.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function (event) {
 
@@ -48,18 +32,19 @@
         , simulateButton = document.getElementById('simulate')
         , changePatchButton = document.getElementById('changePatch')
         , playing = false
-        , canvasNames = ['delta', 'theta', 'loAlpha', 'hiAlpha', 'hiBeta', 'loBeta', 'loGamma', 'midGamma']
-        , canvasColors = ['#ff3333', '#33ff33', '#3333ff', '#33ffff', '#ff33ff', '#ffff33', '#cccccc', '#ffcc33']
-        , graphs = new Graphs(document, canvasNames, canvasColors)
         , voice
         , analyzer
-        , fftContext;
+        , fftContext
+        , info
+        , consoleInc = 0;
+
+      info = document.getElementById('info');
 
       analyzer = audioContext.createAnalyser();
       analyzer.connect(audioContext.destination);
 
-      let fftHeight = 1000;
-      let fftWidth =1000;
+      let fftHeight = 600;
+      let fftWidth = 1170;
       let fftCanvas = document.getElementById('fftCanvas');
       fftContext = fftCanvas.getContext('2d');
       fftContext.clearRect(0, 0, fftWidth, fftHeight);
@@ -72,10 +57,10 @@
       function drawFFT() {
         drawVisual = requestAnimationFrame(drawFFT);
         analyzer.getByteTimeDomainData(dataArray);
-        fftContext.fillStyle = '#222';
+        fftContext.fillStyle = 'rgba(22,22,22,0.9)';
         fftContext.fillRect(0, 0, fftWidth, fftHeight);
         fftContext.lineWidth = 2;
-        fftContext.strokeStyle = 'rgb(200, 200, 200)';
+        fftContext.strokeStyle = 'rgb(100, 100, 100)';
 
         fftContext.beginPath();
 
@@ -107,7 +92,6 @@
         console.log('toggle play/stop');
 
         if (!playing) {
-          console.log('not playing. creating a voice');
           voice = new Voice(audioContext, analyzer);
           voice.start();
         } else {
@@ -115,6 +99,7 @@
         }
 
         playing = !playing;
+        info.textContent = playing ? 'playing...' : 'paused. click the screen to play.';
       });
 
       // toggle.addEventListener('click', function () {
@@ -136,7 +121,6 @@
       // });
 
       function sendModulation(modulation) {
-        if (graphs) graphs.drawValues(modulation);
         if (voice) voice.modulate(modulation);
       }
 
@@ -166,9 +150,14 @@
           console.log('websocket message', event.data);
           let message = JSON.parse(event.data);
           if (!message) return;
-
+          consoleInc++;
+          if (consoleInc > 100) {
+            console.clear();
+            consoleInc = 0;
+          }
 
           if (message.type === 'eeg') {
+            info.textContent = playing ? JSON.stringify(message.data, null, ' ') : 'paused. click the screen to play.';
             var modulation = {
               delta: message.data.delta,
               theta: message.data.theta,
@@ -180,10 +169,16 @@
               midGamma: message.data.midGamma
             };
 
-            sendModulation(modulation);
+            if (playing) sendModulation(modulation);
             return;
           } else if (message.type === 'blink') {
             console.log('BLINK!');
+
+            info.style.color = 'rgb(255,255,255)';
+            setTimeout(() => {
+              info.style.color = 'rgb(100,100,100)';
+            }, 100);
+
             if (voice) voice.changePatch();
           }
         }
