@@ -8,30 +8,34 @@
       background: #222;
       color: #fff;
     }
+
+    canvas{
+      position: absolute;
+    }
   </style>
 </head>
 
-<body>
-    <div class="container">
-      <h1>Un:heard Resonance - Brainwave Sonifier</h1>
-      <hr>
-      <p>
-        <button class="btn btn-default" id="toggle">Start/Stop</button>
-        <button class="btn btn-default" id="simulate">Simulate Brainwaves</button>
-        <button class="btn btn-default" id="changePatch">Change Patch</button>
-      </p>
+<body id="body">
+  <div class="container">
+    <p>
+      <!--<button class="btn btn-default" id="toggle">Start/Stop</button>-->
+      <!--<button class="btn btn-default" id="simulate">Simulate Brainwaves</button>
+      <button class="btn btn-default" id="changePatch">Change Patch</button>-->
+    </p>
 
-      <canvas id="delta" width="200" height="25"></canvas>
-      <canvas id="theta" width="200" height="25"></canvas>
-      <canvas id="loAlpha" width="200" height="25"></canvas>
-      <canvas id="hiAlpha" width="200" height="25"></canvas>
-      <canvas id="loBeta" width="200" height="25"></canvas>
-      <canvas id="hiBeta" width="200" height="25"></canvas>
-      <canvas id="loGamma" width="200" height="25"></canvas>
-      <canvas id="midGamma" width="200" height="25"></canvas>
+    <canvas id="fftCanvas" width="1000" height="800"></canvas>
+    <canvas id="delta" width="1000" height="800"></canvas>
+    <canvas id="theta" width="1000" height="800"></canvas>
+    <canvas id="loAlpha" width="1000" height="800"></canvas>
+    <canvas id="hiAlpha" width="1000" height="800"></canvas>
+    <canvas id="loBeta" width="1000" height="800"></canvas>
+    <canvas id="hiBeta" width="1000" height="800"></canvas>
+    <canvas id="loGamma" width="1000" height="800"></canvas>
+    <canvas id="midGamma" width="1000" height="800"></canvas>
+
 
   </div>
-  <script src="patch.js"></script>
+  <!--<script src="patch.js"></script>-->
   <script src="patch2.js"></script>
   <script src="voice.js"></script>
   <script src="graphs.js"></script>
@@ -47,14 +51,64 @@
         , canvasNames = ['delta', 'theta', 'loAlpha', 'hiAlpha', 'hiBeta', 'loBeta', 'loGamma', 'midGamma']
         , canvasColors = ['#ff3333', '#33ff33', '#3333ff', '#33ffff', '#ff33ff', '#ffff33', '#cccccc', '#ffcc33']
         , graphs = new Graphs(document, canvasNames, canvasColors)
-        , voice;
+        , voice
+        , analyzer
+        , fftContext;
 
-      toggle.addEventListener('click', function () {
+      analyzer = audioContext.createAnalyser();
+      analyzer.connect(audioContext.destination);
+
+      let fftHeight = 1000;
+      let fftWidth =1000;
+      let fftCanvas = document.getElementById('fftCanvas');
+      fftContext = fftCanvas.getContext('2d');
+      fftContext.clearRect(0, 0, fftWidth, fftHeight);
+
+      analyzer.fftSize = 2048;
+      var bufferLength = analyzer.frequencyBinCount;
+      var dataArray = new Uint8Array(bufferLength);
+
+
+      function drawFFT() {
+        drawVisual = requestAnimationFrame(drawFFT);
+        analyzer.getByteTimeDomainData(dataArray);
+        fftContext.fillStyle = '#222';
+        fftContext.fillRect(0, 0, fftWidth, fftHeight);
+        fftContext.lineWidth = 2;
+        fftContext.strokeStyle = 'rgb(200, 200, 200)';
+
+        fftContext.beginPath();
+
+        var sliceWidth = fftWidth * 1.0 / bufferLength;
+        var x = 0;
+
+
+        for (var i = 0; i < bufferLength; i++) {
+
+          var v = dataArray[i] / 128.0;
+          var y = v * fftHeight / 2;
+
+          if (i === 0) {
+            fftContext.moveTo(x, y);
+          } else {
+            fftContext.lineTo(x, y);
+          }
+
+          x += sliceWidth;
+        }
+
+        fftContext.lineTo(fftWidth, fftHeight / 2);
+        fftContext.stroke();
+      }
+
+      drawFFT();
+
+      body.addEventListener('click', () => {
         console.log('toggle play/stop');
 
         if (!playing) {
           console.log('not playing. creating a voice');
-          voice = new Voice(audioContext);
+          voice = new Voice(audioContext, analyzer);
           voice.start();
         } else {
           if (voice) voice.stop();
@@ -63,35 +117,49 @@
         playing = !playing;
       });
 
-      changePatchButton.addEventListener('click', () => {
-        if (voice) voice.changePatch();
-      });
+      // toggle.addEventListener('click', function () {
+      //   console.log('toggle play/stop');
+
+      //   if (!playing) {
+      //     console.log('not playing. creating a voice');
+      //     voice = new Voice(audioContext, analyzer);
+      //     voice.start();
+      //   } else {
+      //     if (voice) voice.stop();
+      //   }
+
+      //   playing = !playing;
+      // });
+
+      // changePatchButton.addEventListener('click', () => {
+      //   if (voice) voice.changePatch();
+      // });
 
       function sendModulation(modulation) {
         if (graphs) graphs.drawValues(modulation);
         if (voice) voice.modulate(modulation);
       }
 
-      simulateButton.addEventListener('click', function () {
+      // simulateButton.addEventListener('click', function () {
 
-        setInterval(() => {
+      //   setInterval(() => {
 
-          var modulation = {
-            delta: Math.random(),
-            theta: Math.random(),
-            loAlpha: Math.random(),
-            hiAlpha: Math.random(),
-            loBeta: Math.random(),
-            hiBeta: Math.random(),
-            loGamma: Math.random(),
-            midGamma: Math.random()
-          };
+      //     var modulation = {
+      //       delta: Math.random(),
+      //       theta: Math.random(),
+      //       loAlpha: Math.random(),
+      //       hiAlpha: Math.random(),
+      //       loBeta: Math.random(),
+      //       hiBeta: Math.random(),
+      //       loGamma: Math.random(),
+      //       midGamma: Math.random()
+      //     };
 
-          sendModulation(modulation);
+      //     sendModulation(modulation);
 
-        }, 1000);
+      //   }, 1000);
 
-      });
+      // });
 
       ws.onmessage = function (event) {
         try {
@@ -99,18 +167,25 @@
           let message = JSON.parse(event.data);
           if (!message) return;
 
-          var modulation = {
-            delta: message.data.delta,
-            theta: message.data.theta,
-            loAlpha: message.data.loAlpha,
-            hiAlpha: message.data.hiAlpha,
-            loBeta: message.data.loBeta,
-            hiBeta: message.data.hiBeta,
-            loGamma: message.data.loGamma,
-            midGamma: message.data.midGamma
-          };
 
-          sendModulation(modulation);
+          if (message.type === 'eeg') {
+            var modulation = {
+              delta: message.data.delta,
+              theta: message.data.theta,
+              loAlpha: message.data.loAlpha,
+              hiAlpha: message.data.hiAlpha,
+              loBeta: message.data.loBeta,
+              hiBeta: message.data.hiBeta,
+              loGamma: message.data.loGamma,
+              midGamma: message.data.midGamma
+            };
+
+            sendModulation(modulation);
+            return;
+          } else if (message.type === 'blink') {
+            console.log('BLINK!');
+            if (voice) voice.changePatch();
+          }
         }
         catch (err) {
           console.error('error on websocket message', err);

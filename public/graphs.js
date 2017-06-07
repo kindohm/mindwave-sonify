@@ -33,6 +33,7 @@ class Graphs {
     
             var value = modulations[key];
             var y = this.height - this.height * value;
+            context.globalAlpha = 0.01;
             context.lineTo(this.x, y);
             context.stroke();
     

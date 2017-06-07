@@ -1,20 +1,26 @@
 class Voice {
-    constructor(audioContext) {
+    constructor(audioContext, analyzer) {
         this.audioContext = audioContext;
         this.started = false;
+        this.analyzer = analyzer;
 
-        this.patches = [Patch, Patch2];
-        this.patchIndex = -1;
-        this.changePatch();
+        // this.patches = [Patch2];
+        this.patch = new Patch2(this.audioContext,this.analyzer);
+        // this.patchIndex = -1;
+        // this.changePatch();
     }
 
-    changePatch(){
-        this.patchIndex++;
-        if (this.patchIndex >= this.patches.length) this.patchIndex = 0;
+    changePatch() {
+        // this.patchIndex++;
+        // if (this.patchIndex >= this.patches.length) this.patchIndex = 0;
 
-        if (this.started) this.patch.stop();
-        this.patch = new this.patches[this.patchIndex](this.audioContext);
-        if (this.started) this.patch.start();
+        // if (!this.patch) {
+        //     //if (this.started) this.patch.stop();
+        //     this.patch = new this.patches[this.patchIndex](this.audioContext, this.analyzer);
+        //     // if (this.started) this.patch.start();
+        // }
+
+        if (this.patch) this.patch.change();
     }
 
     start() {

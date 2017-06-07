@@ -1,10 +1,10 @@
 class Patch {
-    constructor(audioContext) {
+    constructor(audioContext, analyzer) {
         this.modTime = 1;
         this.audioContext = audioContext;
 
         let osc1 = audioContext.createOscillator();
-        osc1.connect(audioContext.destination);
+        osc1.connect(analyzer);
         osc1.type = 'triangle';
         osc1.frequency.value = 400;
 
