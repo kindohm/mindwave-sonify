@@ -21,7 +21,7 @@
     <canvas id="fftCanvas" width="1170" height="600"></canvas>
     <p id="info" class="text-center"></p>
   </div>
-  <script src="patch2.js"></script>
+  <script src="patch3.js"></script>
   <script src="voice.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function (event) {
@@ -90,17 +90,26 @@
 
       body.addEventListener('click', () => {
         console.log('toggle play/stop');
+        togglePlaying();
+        updatePlayingText();
+      });
 
+      function togglePlaying() {
         if (!playing) {
-          voice = new Voice(audioContext, analyzer);
+          if (!voice) {
+            voice = new Voice(audioContext, analyzer);
+          }
           voice.start();
         } else {
           if (voice) voice.stop();
         }
-
         playing = !playing;
+      }
+
+      function updatePlayingText() {
         info.textContent = playing ? 'playing...' : 'paused. click the screen to play.';
-      });
+
+      }
 
       // toggle.addEventListener('click', function () {
       //   console.log('toggle play/stop');
@@ -180,6 +189,20 @@
             }, 100);
 
             if (voice) voice.changePatch();
+          } else if (message.type === 'meditation') {
+            if (playing != (message.data !== 0)) {
+              console.log('Meditation: 0. User removed headset.');
+              togglePlaying();
+              updatePlayingText();
+            } else if (playing && message.data < 40) {
+              console.log('changing patch due to low meditation.');
+              if (voice) {
+                voice.changePatch();
+                voice.setMeditation(message.data);
+              }
+            }
+          }else if (message.type === 'attention'){
+            if (voice) voice.setAttention(message.data);
           }
         }
         catch (err) {

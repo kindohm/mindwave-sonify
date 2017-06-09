@@ -68,6 +68,39 @@ Cylon.robot({
             }
         });
 
+        my.headset.on('meditation', function (data) {
+            console.log('meditation', data);
+            if (!mahWS) {
+                return;
+            }
+
+            try {
+                mahWS.send(JSON.stringify({ type: 'meditation', data: data }));
+            }
+            catch (err) {
+                console.error('error sending meditation!', err);
+            }
+
+        });
+
+        my.headset.on('attention', function (data) {
+
+            if (data === 128 || data === 0) return;
+
+            console.log('attention', data);
+            if (!mahWS) {
+                return;
+            }
+
+            try {
+                mahWS.send(JSON.stringify({ type: 'attention', data: data }));
+            }
+            catch (err) {
+                console.error('error sending attention!', err);
+            }
+
+        });
+
         my.headset.on('blink', function (data) {
             console.log('BLINK', data);
             if (!mahWS) {

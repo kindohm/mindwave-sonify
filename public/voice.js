@@ -1,11 +1,11 @@
 class Voice {
     constructor(audioContext, analyzer) {
         this.audioContext = audioContext;
-        this.started = false;
+        // this.started = false;
         this.analyzer = analyzer;
 
         // this.patches = [Patch2];
-        this.patch = new Patch2(this.audioContext,this.analyzer);
+        this.patch = new Patch3(this.audioContext,this.analyzer);
         // this.patchIndex = -1;
         // this.changePatch();
     }
@@ -23,13 +23,21 @@ class Voice {
         if (this.patch) this.patch.change();
     }
 
+    setAttention(data){
+        if (this.patch) this.patch.setAttention(data);
+    }
+
+    setMeditation(data){
+        if (this.patch) this.patch.setMeditation(data);
+    }
+
     start() {
-        if (this.started) {
-            console.warn('tried to start a patch that has already been started.');
-        }
+        // if (this.started) {
+        //     console.warn('tried to start a patch that has already been started.');
+        // }
 
         this.patch.start();
-        this.started = true;
+        // this.started = true;
     }
 
     modulate(modulation) {
@@ -37,7 +45,7 @@ class Voice {
     }
 
     stop() {
-        if (!this.started) return;
+        // if (!this.started) return;
         this.patch.stop();
     }
 }
