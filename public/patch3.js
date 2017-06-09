@@ -13,7 +13,7 @@ class Patch3 {
         this.fmType2 = 0;
         this.fmType3 = 0;
 
-        this.durationScales = [25, 50, 30, 70, 20, 15, 20, 10];
+        this.durationScales = [25, 50, 30, 70, 20, 20];
         this.durationScale = 0;
 
         this.masterGain = this.audioContext.createGain();
@@ -49,7 +49,8 @@ class Patch3 {
 
     createNodes(quantityFactor, timeFactor, freqFactor, fmFreqFactor, fmFreqFactor2, fmFreqFactor3, fmFreqFactor4, someFactor) {
 
-        var quantity = Math.floor(quantityFactor * 10);
+        var quantity = Math.floor(quantityFactor * 10 * (this.currentAttention / 100));
+        console.log('qty', quantity);
         for (var i = 0; i < quantity; i++) {
             let osc = this.audioContext.createOscillator();
 
@@ -57,7 +58,7 @@ class Patch3 {
             osc.frequency.value = this.getFreq(freqFactor);
 
             let duration = this.getDuration(timeFactor);
-            let startTime = this.getStartTime(timeFactor);
+            let startTime = this.getStartTime(timeFactor, this.currentAttention);
             let amp = this.audioContext.createGain();
             amp.gain.value = 0.35;
             amp.gain.setTargetAtTime(0, this.audioContext.currentTime + startTime, duration / 4);
@@ -72,7 +73,7 @@ class Patch3 {
             lfo1.frequency.value = this.getFmFreq(fmFreqFactor);;
 
             let vibrato2 = this.audioContext.createGain();
-            vibrato2.gain.value = 20 * this.currentMeditation;
+            vibrato2.gain.value = 20 * Math.max(this.currentMeditation,1);
             vibrato2.connect(lfo1.detune);
 
             let lfo2 = this.audioContext.createOscillator();
@@ -122,7 +123,7 @@ class Patch3 {
     }
 
     getFmFreq(fmFreqFactor) {
-        return this.getRandomInt(3 * fmFreqFactor, 10000 * fmFreqFactor);
+        return this.getRandomInt(1 * fmFreqFactor, 10000 * fmFreqFactor);
     }
 
     getFmFreq2(fmFreqFactor) {
@@ -133,12 +134,13 @@ class Patch3 {
         return this.getRandomInt(1 * fmFreqFactor, 100 * fmFreqFactor);
     }
 
-    getStartTime(timeFactor) {
-        return this.getRandomInt(10 * timeFactor, 10000 * timeFactor) / 1000;
-    }
+    getStartTime(timeFactor, attention) {
+        // return this.getRandomInt(100 * timeFactor, 10000 * timeFactor) / 1000;
+        return this.getRandomInt(10 * timeFactor, 1000 * timeFactor) / (Math.max(attention*0.5,1));
+    }    
 
     getDuration(timeFactor) {
-        return this.getRandomInt(10 * timeFactor, 100 * timeFactor) / this.durationScales[this.durationScale];
+        return this.getRandomInt(10 * timeFactor, 300 * timeFactor) / (this.durationScales[this.durationScale] * this.currentAttention / 100);
     }
 
     getRandomInt(min, max) {

@@ -20,6 +20,7 @@
 
     <canvas id="fftCanvas" width="1170" height="600"></canvas>
     <p id="info" class="text-center"></p>
+    <p id="forcePlayInfo" class="text-center"></p>
   </div>
   <script src="patch3.js"></script>
   <script src="voice.js"></script>
@@ -32,13 +33,16 @@
         , simulateButton = document.getElementById('simulate')
         , changePatchButton = document.getElementById('changePatch')
         , playing = false
+        , forcePlay = false
         , voice
         , analyzer
         , fftContext
         , info
+        , forcePlayInfo
         , consoleInc = 0;
 
       info = document.getElementById('info');
+      forcePlayInfo = document.getElementById('forcePlayInfo');
 
       analyzer = audioContext.createAnalyser();
       analyzer.connect(audioContext.destination);
@@ -90,6 +94,7 @@
 
       body.addEventListener('click', () => {
         console.log('toggle play/stop');
+        forcePlay = !forcePlay;
         togglePlaying();
         updatePlayingText();
       });
@@ -108,7 +113,7 @@
 
       function updatePlayingText() {
         info.textContent = playing ? 'playing...' : 'paused. click the screen to play.';
-
+        forcePlayInfo.textContent = forcePlay.toString();
       }
 
       // toggle.addEventListener('click', function () {
@@ -191,6 +196,7 @@
             if (voice) voice.changePatch();
           } else if (message.type === 'meditation') {
             if (playing != (message.data !== 0)) {
+              if (forcePlay) return;
               console.log('Meditation: 0. User removed headset.');
               togglePlaying();
               updatePlayingText();
