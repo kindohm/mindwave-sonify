@@ -7,7 +7,7 @@ class Patch3 {
         this.oscHash = {};
 
         this.types = ['triangle', 'sine'];
-        this.fmTypes = ['triangle', 'sine', 'sawtooth', 'square'];
+        this.fmTypes = ['triangle', 'sine', 'sawtooth', 'square', 'square'];
         this.type = 0;
         this.fmType = 0;
         this.fmType2 = 0;
@@ -32,20 +32,18 @@ class Patch3 {
 
     stop() {
         this.masterGain.gain.value = 0;
-        // this.playing = false;
     }
 
-    setAttention(data){
+    setAttention(data) {
         this.currentAttention = data;
     }
 
-    setMeditation(data){
+    setMeditation(data) {
         this.currentMeditation = data;
     }
 
     modulate(params) {
         if (!this.playing) return;
-        //params.hiBeta
         this.createNodes(this.currentAttention / 100, params.midGamma, params.hiAlpha, params.loAlpha, params.loGamma, params.hiBeta, params.loBeta, params.theta);
     }
 
@@ -74,7 +72,7 @@ class Patch3 {
             lfo1.frequency.value = this.getFmFreq(fmFreqFactor);;
 
             let vibrato2 = this.audioContext.createGain();
-            vibrato2.gain.value = 20* this.currentMeditation;
+            vibrato2.gain.value = 20 * this.currentMeditation;
             vibrato2.connect(lfo1.detune);
 
             let lfo2 = this.audioContext.createOscillator();
@@ -124,15 +122,15 @@ class Patch3 {
     }
 
     getFmFreq(fmFreqFactor) {
-        return this.getRandomInt(5 * fmFreqFactor, 20000 * fmFreqFactor);
+        return this.getRandomInt(3 * fmFreqFactor, 10000 * fmFreqFactor);
     }
 
     getFmFreq2(fmFreqFactor) {
-        return this.getRandomInt(5 * fmFreqFactor, 200 * fmFreqFactor);
+        return this.getRandomInt(1 * fmFreqFactor, 200 * fmFreqFactor);
     }
 
-    getFmFreq3(fmFreqFactor){
-        return this.getRandomInt(2 * fmFreqFactor, 100 * fmFreqFactor);
+    getFmFreq3(fmFreqFactor) {
+        return this.getRandomInt(1 * fmFreqFactor, 100 * fmFreqFactor);
     }
 
     getStartTime(timeFactor) {
